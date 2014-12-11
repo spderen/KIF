@@ -31,6 +31,11 @@
     return [self waitForViewWithAccessibilityLabel:label value:nil traits:UIAccessibilityTraitNone tappable:NO];
 }
 
+- (UIView *)waitForViewWithAccessibilityLabelLike:(NSString *)label
+{
+    return [self waitForViewWithAccessibilityLabelLike:label value:nil traits:UIAccessibilityTraitNone tappable:NO];
+}
+
 - (UIView *)waitForViewWithAccessibilityLabel:(NSString *)label traits:(UIAccessibilityTraits)traits
 {
     return [self waitForViewWithAccessibilityLabel:label value:nil traits:traits tappable:NO];
@@ -66,10 +71,27 @@
     return view;
 }
 
+- (UIView *)waitForViewWithAccessibilityLabelLike:(NSString *)label value:(NSString *)value traits:(UIAccessibilityTraits)traits tappable:(BOOL)mustBeTappable
+{
+    UIView *view = nil;
+    @autoreleasepool {
+        [self waitForAccessibilityElement:NULL view:&view withLabelLike:label value:value traits:traits tappable:mustBeTappable];
+    }
+    
+    return view;
+}
+
 - (void)waitForAccessibilityElement:(UIAccessibilityElement **)element view:(out UIView **)view withLabel:(NSString *)label value:(NSString *)value traits:(UIAccessibilityTraits)traits tappable:(BOOL)mustBeTappable
 {
     [self runBlock:^KIFTestStepResult(NSError **error) {
         return [UIAccessibilityElement accessibilityElement:element view:view withLabel:label value:value traits:traits tappable:mustBeTappable error:error] ? KIFTestStepResultSuccess : KIFTestStepResultWait;
+    }];
+}
+
+- (void)waitForAccessibilityElement:(UIAccessibilityElement **)element view:(out UIView **)view withLabelLike:(NSString *)label value:(NSString *)value traits:(UIAccessibilityTraits)traits tappable:(BOOL)mustBeTappable
+{
+    [self runBlock:^KIFTestStepResult(NSError **error) {
+        return [UIAccessibilityElement accessibilityElement:element view:view withLabelLike:label value:value traits:traits tappable:mustBeTappable error:error] ? KIFTestStepResultSuccess : KIFTestStepResultWait;
     }];
 }
 

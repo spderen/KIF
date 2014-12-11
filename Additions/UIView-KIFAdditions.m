@@ -127,6 +127,42 @@ static CGFloat const kTwoFingerConstantWidth = 40;
     }];
 }
 
+- (UIAccessibilityElement *)accessibilityElementWithLabelLike:(NSString *)label accessibilityValue:(NSString *)value traits:(UIAccessibilityTraits)traits;
+{
+    return [self accessibilityElementMatchingBlock:^(UIAccessibilityElement *element) {
+        
+        // TODO: This is a temporary fix for an SDK defect.
+        NSString *accessibilityValue = nil;
+        @try {
+            accessibilityValue = element.accessibilityValue;
+        }
+        @catch (NSException *exception) {
+            NSLog(@"KIF: Unable to access accessibilityValue for element %@ because of exception: %@", element, exception.reason);
+        }
+        
+        if ([accessibilityValue isKindOfClass:[NSAttributedString class]]) {
+            accessibilityValue = [(NSAttributedString *)accessibilityValue string];
+        }
+        
+        BOOL labelsMatch = element.accessibilityLabel == label || [element.accessibilityLabel isEqual:label]
+        || [element.accessibilityLabel rangeOfString:label].location != NSNotFound;
+        
+        // On iOS 6 the accessibility label may contain line breaks, so when trying to find the
+        // element, these line breaks are necessary. But on iOS 7 the system replaces them with
+        // spaces. So the same test breaks on either iOS 6 or iOS 7. To work around this replace
+        // the line breaks the same way and try again.
+        if (!labelsMatch) {
+            NSString *modifiedLabel = [label stringByReplacingOccurrencesOfString:@"\n" withString:@" "];
+            labelsMatch = element.accessibilityLabel == modifiedLabel || [element.accessibilityLabel isEqual:modifiedLabel];
+        }
+        
+        BOOL traitsMatch = ((element.accessibilityTraits) & traits) == traits;
+        BOOL valuesMatch = !value || [value isEqual:accessibilityValue];
+        
+        return (BOOL)(labelsMatch && traitsMatch && valuesMatch);
+    }];
+}
+
 - (UIAccessibilityElement *)accessibilityElementMatchingBlock:(BOOL(^)(UIAccessibilityElement *))matchBlock;
 {
     if (self.hidden) {
