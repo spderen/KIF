@@ -145,7 +145,7 @@ static CGFloat const kTwoFingerConstantWidth = 40;
         }
         
         BOOL labelsMatch = element.accessibilityLabel == label || [element.accessibilityLabel isEqual:label]
-        || [element.accessibilityLabel rangeOfString:label].location != NSNotFound;
+        || (element.accessibilityLabel && [element.accessibilityLabel rangeOfString:label].location != NSNotFound);
         
         // On iOS 6 the accessibility label may contain line breaks, so when trying to find the
         // element, these line breaks are necessary. But on iOS 7 the system replaces them with
