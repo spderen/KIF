@@ -447,26 +447,42 @@ static CGFloat const kTwoFingerConstantWidth = 40;
     
 }
 
-- (void)dragFromPoint:(CGPoint)startPoint toPoint:(CGPoint)endPoint;
-{
-    [self dragFromPoint:startPoint toPoint:endPoint steps:3];
+
+- (void)dragFromPoint:(CGPoint)startPoint toPoint:(CGPoint)endPoint {
+    [self dragFromPoint:startPoint toPoint:endPoint initialPressDuration:0];
 }
 
+- (void)dragFromPoint:(CGPoint)startPoint toPoint:(CGPoint)endPoint initialPressDuration:(NSTimeInterval)duration {
+    [self dragFromPoint:startPoint toPoint:endPoint steps:30 initialPressDuration:duration];
+}
 
-- (void)dragFromPoint:(CGPoint)startPoint toPoint:(CGPoint)endPoint steps:(NSUInteger)stepCount;
+- (void)dragFromPoint:(CGPoint)startPoint toPoint:(CGPoint)endPoint steps:(NSUInteger)stepCount {
+    [self dragFromPoint:startPoint toPoint:endPoint steps:stepCount initialPressDuration:0];
+}
+
+- (void)dragFromPoint:(CGPoint)startPoint toPoint:(CGPoint)endPoint steps:(NSUInteger)stepCount initialPressDuration:(NSTimeInterval)duration;
 {
     KIFDisplacement displacement = CGPointMake(endPoint.x - startPoint.x, endPoint.y - startPoint.y);
-    [self dragFromPoint:startPoint displacement:displacement steps:stepCount];
+    [self dragFromPoint:startPoint displacement:displacement steps:stepCount initialPressDuration:duration];
 }
 
-- (void)dragFromPoint:(CGPoint)startPoint displacement:(KIFDisplacement)displacement steps:(NSUInteger)stepCount;
+- (void)dragFromPoint:(CGPoint)startPoint displacement:(KIFDisplacement)displacement steps:(NSUInteger)stepCount
+{
+    [self dragFromPoint:startPoint displacement:displacement steps:stepCount initialPressDuration:0];
+}
+
+- (void)dragFromPoint:(CGPoint)startPoint displacement:(KIFDisplacement)displacement steps:(NSUInteger)stepCount initialPressDuration:(NSTimeInterval)duration;
 {
     CGPoint endPoint = CGPointMake(startPoint.x + displacement.x, startPoint.y + displacement.y);
     NSArray *path = [self pointsFromStartPoint:startPoint toPoint:endPoint steps:stepCount];
-    [self dragPointsAlongPaths:@[path]];
+    [self dragPointsAlongPaths:@[path] initialPressDuration:duration];
 }
 
-- (void)dragAlongPathWithPoints:(CGPoint *)points count:(NSInteger)count;
+- (void)dragAlongPathWithPoints:(CGPoint *)points count:(NSInteger)count {
+    [self dragAlongPathWithPoints:points count:count initialPressDuration:0];
+}
+
+- (void)dragAlongPathWithPoints:(CGPoint *)points count:(NSInteger)count initialPressDuration:(NSTimeInterval)duration
 {
     // convert point array into NSArray with NSValue
     NSMutableArray *array = [NSMutableArray array];
@@ -474,16 +490,20 @@ static CGFloat const kTwoFingerConstantWidth = 40;
     {
         [array addObject:[NSValue valueWithCGPoint:points[i]]];
     }
-    [self dragPointsAlongPaths:@[[array copy]]];
+    [self dragPointsAlongPaths:@[[array copy]] initialPressDuration:duration];
 }
 
 - (void)dragPointsAlongPaths:(NSArray *)arrayOfPaths {
+    [self dragPointsAlongPaths:arrayOfPaths initialPressDuration:0];
+}
+
+- (void)dragPointsAlongPaths:(NSArray *)arrayOfPaths initialPressDuration:(NSTimeInterval)duration {
     // must have at least one path, and each path must have the same number of points
     if (arrayOfPaths.count == 0)
     {
         return;
     }
-
+    
     // all paths must have similar number of points
     NSUInteger pointsInPath = [arrayOfPaths[0] count];
     for (NSArray *path in arrayOfPaths)
@@ -493,9 +513,9 @@ static CGFloat const kTwoFingerConstantWidth = 40;
             return;
         }
     }
-
+    
     NSMutableArray *touches = [NSMutableArray array];
-
+    
     for (NSUInteger pointIndex = 0; pointIndex < pointsInPath; pointIndex++) {
         // create initial touch event and send touch down event
         if (pointIndex == 0)
@@ -509,6 +529,21 @@ static CGFloat const kTwoFingerConstantWidth = 40;
             }
             UIEvent *eventDown = [self eventWithTouches:[NSArray arrayWithArray:touches]];
             [[UIApplication sharedApplication] sendEvent:eventDown];
+            
+            /////////////////////////////////////////
+            if (duration > 0) {
+                UITouch * touch = [touches objectAtIndex:0];
+                for (NSTimeInterval timeSpent = 0.1; timeSpent < duration; timeSpent += 0.1)
+                {
+                    [touch setPhaseAndUpdateTimestamp:UITouchPhaseStationary];
+                    
+                    UIEvent *eventStillDown = [self eventWithTouch:touch];
+                    [[UIApplication sharedApplication] sendEvent:eventStillDown];
+                    
+                    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.1, false);
+                }
+            }
+            /////////////////////////////////////////
         }
         else
         {
@@ -527,16 +562,16 @@ static CGFloat const kTwoFingerConstantWidth = 40;
             }
             UIEvent *event = [self eventWithTouches:[NSArray arrayWithArray:touches]];
             [[UIApplication sharedApplication] sendEvent:event];
-
-            CFRunLoopRunInMode(UIApplicationCurrentRunMode, DRAG_TOUCH_DELAY, false);
+            
+            CFRunLoopRunInMode(UIApplicationCurrentRunMode, 0.1, false);
         }
     }
-
+    
     // Dispatching the event doesn't actually update the first responder, so fake it
     if ([touches[0] view] == self && [self canBecomeFirstResponder]) {
         [self becomeFirstResponder];
     }
-
+    
     while (UIApplicationCurrentRunMode != kCFRunLoopDefaultMode) {
         CFRunLoopRunInMode(UIApplicationCurrentRunMode, 0.1, false);
     }
